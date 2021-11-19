@@ -7,3 +7,6 @@
 [submodule "lib/tclap"]
 	path = lib/tclap
 	url = https://github.com/mirror/tclap
+[submodule "lib/miniz"]
+	path = lib/miniz
+	url = https://github.com/richgel999/miniz

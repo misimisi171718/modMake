@@ -16,27 +16,17 @@ static void copyFiles(const std::vector<fs::path>& src,const fs::path& dest)
 	}
 }
 
-void createTarget(const std::string& name, const srcFiles& files, const YAML::Node& config) 
+void createTarget(const Target& target, const srcFiles& files, const fs::path& outDir )
 {
-	spdlog::info("creating target: {}",name);
-	auto settings = config["targets"][name];
-	auto base = fs::path( config["outDir"].as<std::string>() )/name;
+	spdlog::info("	- folder");
 
-	std::vector<std::regex> excludes;
-	if(settings["exclude"])
-		for(auto i:settings["exclude"])
-		{
-			std::regex excludeRE(i.as<std::string>(),std::regex::optimize);
-			excludes.push_back(excludeRE);
-		}
+	fs::remove_all(outDir);
 
-	fs::remove_all(base);
-
-	auto modsDir = base/"mods";
+	auto modsDir = outDir/"mods";
 	fs::create_directories(modsDir);
 	copyFiles(files.modFiles,modsDir);
 
-	auto configDir = base/"config";
+	auto configDir = outDir/"config";
 	fs::create_directories(configDir);
 	copyFiles(files.configFiles,configDir);
 	copyFiles(files.configFolders,configDir);

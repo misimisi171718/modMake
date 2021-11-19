@@ -6,6 +6,8 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "config.hpp"
+
 namespace fs = std::filesystem;
 
 struct srcFiles
@@ -16,6 +18,8 @@ struct srcFiles
 	srcFiles& operator+=(const srcFiles& toAppend);
 };
 
-YAML::Node init(int argc,char* argv[]);
+Configuration init(int argc,char* argv[]);
 srcFiles getSrcFiles(const fs::path& location);
-void createTarget(const std::string& name, const srcFiles& files, const YAML::Node& config);
+void createTarget(const Target& target, const srcFiles& files, const fs::path& outDir);
+void createArchive(const Target& target, const srcFiles& files, const fs::path& outName);
+srcFiles filterSrcs(const srcFiles& allsrcs, const std::vector<std::regex>& excludes);

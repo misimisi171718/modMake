@@ -2,21 +2,30 @@
 #include <spdlog/stopwatch.h>
 
 #include "util.hpp"
+#include "config.hpp"
 
 int main(int argc, char* argv[])
 {
 	spdlog::stopwatch sw;
-	auto config = init(argc,argv);
+	const auto config = init(argc,argv);
 
-	auto srcDirs = config["srcDirs"];
-	srcFiles srcFiles;
-	for(auto i : srcDirs)
-		srcFiles += getSrcFiles(i.as<std::string>());
-
-	for(auto target : config["targets"])
+	srcFiles srcs = getSrcFiles(config.srcDir);
+	
+	for(auto& target : config.targets)
 	{
-		auto name = target.first.as<std::string>();
-		createTarget(name,srcFiles,config);
+
+		spdlog::info("creating target");
+		srcFiles targerSrcs = filterSrcs(srcs,target.excludes);
+
+
+		const auto name = target.name;
+		if(target.makeFolder)
+			createTarget(target,targerSrcs,config.outDir/name);
+		if(target.makeArchive)
+		{
+			auto out = config.outDir/(name+"_V"+config.version+".zip");
+			createArchive(target,targerSrcs,out);
+		}
 	}
 
 	spdlog::info("build finished in {:.3f} seconds",sw.elapsed().count());
