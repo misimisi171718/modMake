@@ -22,4 +22,5 @@ struct Configuration
 	fs::path outDir;
 	std::string version;
 	std::vector<Target> targets;
+	std::vector<std::regex> configPatterns;
 };

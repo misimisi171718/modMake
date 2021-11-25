@@ -8,7 +8,7 @@ static std::vector<fs::path> filterVec(const std::regex& re, const std::vector<f
 	ret.reserve(paths.size());
 	for (auto &file : paths)
 	{
-		if(!std::regex_match(file.string(),re))
+		if(!std::regex_search(file.string(),re))
 			ret.push_back(file);
 	}
 	ret.shrink_to_fit();

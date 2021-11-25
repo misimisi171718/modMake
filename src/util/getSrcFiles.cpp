@@ -1,3 +1,5 @@
+#include <tuple>
+
 #include <spdlog/spdlog.h>
 
 #include "../util.hpp"
@@ -39,39 +41,49 @@ static bool exploreDir(const fs::path& path, srcFiles& files)
 	return !hasJarFiles;
 }
 
+static void removeConfigPatternFolders(std::vector<fs::path>& folders,const std::vector<std::regex>& configPat)
+{
+	for (auto &re : configPat)
+		for (int i = folders.size() - 1; i >= 0; i--)
+		{
+			auto s = folders[i].string();
+			if(std::regex_search(s,re))
+			{
+				folders.erase(folders.begin() + i);
+			}
+		}
+}
+
 static void filterConfigs(srcFiles& files)
 {
 	auto& folders = files.configFolders;
-	bool removedFolder = true;
-	size_t reversLocation = 0;
-	while(removedFolder)
-	{
-		if(reversLocation >= folders.size())
-			break;
 
-		std::vector<int> removeLocations;
-		auto toRemove = *(folders.rbegin()-reversLocation);
-		for(int i = folders.size()-1; i >= 0; i--)
-			if(folders[i].string().find(toRemove) == 0 && folders[i] != toRemove)
-				removeLocations.push_back(i);
-		
-		for(auto i:removeLocations)
+	std::vector<int> toRemove;
+	toRemove.reserve(folders.size());
+	for (int rloc = folders.size() - 1; rloc >= 0; rloc--)
+	{
+		for (int i = rloc - 1; i >= 0 ; i--)
 		{
-			auto temp = folders.begin() + i;
-			spdlog::trace("deleted extra folder: {}",temp->c_str());
-			folders.erase(temp);
+			if(std::find(toRemove.begin(),toRemove.end(),i) != toRemove.end())
+				break;
+
+			if(folders[i].string().find(folders[rloc]) == 0)
+				toRemove.push_back(i);
 		}
-		
-		if(removeLocations.empty())
-			removedFolder = false;
-		reversLocation++;
 	}
+	for (auto &i : toRemove)
+	{
+		auto temp = folders.begin() + i;
+		spdlog::trace("deleted extra folder: {}",temp->c_str());
+		folders.erase(temp);
+	}
+	
 
 
 	auto& confFiles = files.configFiles;
 	for(auto& folder:folders)
 		for(int i = confFiles.size()-1; i>=0; i--)
-			if(confFiles[i].string().find(folder) == 0)
+			if(confFiles[i].string().find(folder/"") == 0)
 			{
 				auto temp = confFiles.begin() + i;
 				spdlog::trace("deleted extra config file: {}",temp->c_str());
@@ -80,15 +92,47 @@ static void filterConfigs(srcFiles& files)
 
 }
 
-srcFiles getSrcFiles(const fs::path& location) 
+static void removeDuplicates(std::vector<fs::path>& files)
 {
+	std::vector<std::pair<int,int>> toRemove;
+	toRemove.reserve(files.size());
+	
+	for (size_t i = 0; i < files.size(); i++)
+		for (size_t j = i+1; j < files.size(); j++)
+			if(files[i].filename() == files[j].filename())
+				toRemove.push_back({i,j});
+	
+	std::sort(toRemove.begin(),toRemove.end(),[](auto x, auto y){return x.second > y.second;});
+
+
+
+	for (auto &i : toRemove)
+		spdlog::warn("duplicate files removing the second one\n\t{}\n\t{}",
+			files[i.first].c_str(),
+			files[i.second].c_str());
+
+	for (auto &i : toRemove)
+		files.erase(files.begin() + i.second);
+	
+
+}
+
+srcFiles getSrcFiles(const Configuration& config) 
+{
+	auto& location = config.srcDir;
 	if(not fs::exists(location))
 		spdlog::error("source {} location dosent exist",location.c_str());
 	
 	srcFiles ret;
 
 	exploreDir(location,ret);
+
+	removeConfigPatternFolders(ret.configFolders,config.configPatterns);
 	filterConfigs(ret);
+
+	removeDuplicates(ret.modFiles);
+	removeDuplicates(ret.configFiles);
+	removeDuplicates(ret.configFolders);
 
 	return ret;
 }

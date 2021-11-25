@@ -21,12 +21,13 @@ void createArchive(const Target& target, const srcFiles& files, const fs::path& 
 		mz_zip_writer_add_file(&arc,("config"/file.filename()).c_str(),file.c_str(),"",1,0);
 
 	for (auto &folder : files.configFolders)
-		for (auto &file : fs::directory_iterator(folder))
+		for (auto &file : fs::recursive_directory_iterator(folder))
 		{
 			if(!file.is_regular_file())
 				continue;
-			const auto f = file.path();
-			mz_zip_writer_add_file(&arc,("config"/f).c_str(),f.c_str(),"",1,0);
+			const auto path = file.path().string();
+			const auto relPath = path.substr(folder.parent_path().string().length());
+			mz_zip_writer_add_file(&arc,("config/"+relPath).c_str(),path.c_str(),"",1,0);
 		
 		}
 		

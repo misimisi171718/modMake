@@ -56,6 +56,32 @@ static std::vector<T> requireOptAsVec(const YAML::Node& conf, const std::string&
 	
 	return ret;
 }
+template<typename T>
+static std::vector<T> getOptAsVec(const YAML::Node& conf, const std::string& name, const bool warn, const std::function<T(const YAML::const_iterator)>& process)
+{
+	if(!conf[name])
+	{
+		if(warn)
+			spdlog::warn("failed to get option \"{}\" using default",name);
+		return {};
+	}
+
+	if(!conf[name].IsMap() && !conf[name].IsSequence())
+	{
+		spdlog::critical("paramter named \"{}\" is not type map or sequence",name);
+		std::exit(EXIT_FAILURE);
+	}
+
+	std::vector<T> ret;
+	ret.reserve(conf[name].size());
+
+	for (auto i = std::begin(conf[name]); i != std::end(conf[name]); i++)
+	{
+		ret.push_back(process(i));
+	}
+	
+	return ret;
+}
 
 static Configuration loadConfig(const fs::path& confFile)
 {
@@ -81,6 +107,12 @@ static Configuration loadConfig(const fs::path& confFile)
 			std::regex ret{ex->as<std::string>(),std::regex::optimize};
 			return ret;
 		});
+		return ret;
+	});
+
+	ret.configPatterns = getOptAsVec<std::regex>(file,"configPatterns",false,[](const YAML::const_iterator ex){
+		auto s = ex->as<std::string>();
+		std::regex ret{s,std::regex::optimize};
 		return ret;
 	});
 

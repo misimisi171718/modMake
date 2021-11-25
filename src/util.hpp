@@ -5,6 +5,7 @@
 #include <string>
 
 #include <yaml-cpp/yaml.h>
+#include <spdlog/fmt/ostr.h>
 
 #include "config.hpp"
 
@@ -18,8 +19,10 @@ struct srcFiles
 	srcFiles& operator+=(const srcFiles& toAppend);
 };
 
+std::ostream& operator<<(std::ostream& os, const srcFiles& f);
+
 Configuration init(int argc,char* argv[]);
-srcFiles getSrcFiles(const fs::path& location);
+srcFiles getSrcFiles(const Configuration& location);
 void createTarget(const Target& target, const srcFiles& files, const fs::path& outDir);
 void createArchive(const Target& target, const srcFiles& files, const fs::path& outName);
 srcFiles filterSrcs(const srcFiles& allsrcs, const std::vector<std::regex>& excludes);
